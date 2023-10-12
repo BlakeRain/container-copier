@@ -1,0 +1,19 @@
+[package]
+name = "container-copier"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+futures-util = { version = "0.3" }
+inotify = { version = "0.10" }
+lazy_static = { version = "1.4" }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
+toml = { version = "0.8" }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+build-data = { version = "0.1" }
