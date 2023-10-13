@@ -190,7 +190,6 @@ dependencies = [
  "clap",
  "futures-util",
  "inotify",
- "lazy_static",
  "serde",
  "tokio",
  "toml",
