@@ -82,16 +82,33 @@ impl Copyset {
         for target in &self.targets {
             let source = self.source.join(&target.source);
             let target = self.target.join(&target.target);
-
             tracing::info!("  {:?} -> {:?}", source, target);
-            // If the source file exists but the target does not, copy it now.
-            if source.is_file() && !target.exists() {
+
+            let target_exists = target
+                .try_exists()
+                .map_err(|err| {
+                    tracing::error!("  Failed to check if target exists: {err:?}");
+                    err
+                })
+                .unwrap_or(false);
+
+            if source.is_file() && !target_exists {
                 tracing::info!("  Copying {:?} to {:?}", source, target);
-                std::fs::copy(&source, &target)?;
+                std::fs::copy(&source, &target).map_err(|err| {
+                    tracing::error!("  Failed to copy: {err:?}");
+                    err
+                })?;
             }
 
-            // Add watch for source file.
-            let wd = env.notify.watches().add(&source, *WATCH_MASK)?;
+            let wd = env
+                .notify
+                .watches()
+                .add(&source, *WATCH_MASK)
+                .map_err(|err| {
+                    tracing::error!("  Failed to add watch: {err:?}");
+                    err
+                })?;
+
             env.targets.insert(wd, ResolvedTarget::new(source, target));
         }
 
