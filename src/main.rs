@@ -76,9 +76,10 @@ impl Copyset {
             let source = self.source.join(&target.source);
             let target = self.target.join(&target.target);
 
+            tracing::info!("  {:?} -> {:?}", source, target);
             // If the source file exists but the target does not, copy it now.
             if source.is_file() && !target.exists() {
-                tracing::info!("Copying {:?} to {:?}", source, target);
+                tracing::info!("  Copying {:?} to {:?}", source, target);
                 std::fs::copy(&source, &target)?;
             }
 
