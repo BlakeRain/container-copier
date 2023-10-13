@@ -13,7 +13,7 @@ COPY build.rs ./
 COPY src ./src
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
-FROM scratch
+FROM ubuntu:latest
 COPY --from=builder /usr/local/cargo/bin/container-copier .
 USER 1000
 ENTRYPOINT ["./container-copier"]
