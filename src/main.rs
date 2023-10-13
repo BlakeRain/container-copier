@@ -42,7 +42,8 @@ impl Config {
         toml::from_str(&buf).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
 
-    fn setup(&self) -> std::io::Result<Env> {
+    async fn setup(&self) -> std::io::Result<Env> {
+        tracing::info!("Creating inotify");
         let inotify = Inotify::init()?;
         let mut env = Env {
             notify: inotify,
@@ -51,13 +52,13 @@ impl Config {
 
         tracing::info!("Setting up inotify watches");
         for copyset in &self.copysets {
-            copyset.add_to_watch(&mut env).map_err(|err| {
+            copyset.add_to_watch(&mut env).await.map_err(|err| {
                 tracing::error!(
                     "Failed to add copyset {:?} to inotify: {err:?}",
                     copyset.name
                 );
                 err
-            });
+            })?;
         }
 
         Ok(env)
@@ -77,12 +78,15 @@ lazy_static! {
 }
 
 impl Copyset {
-    fn add_to_watch(&self, env: &mut Env) -> std::io::Result<()> {
-        tracing::info!("Adding watch for copyset {:?}", self.source);
+    async fn add_to_watch(&self, env: &mut Env) -> std::io::Result<()> {
+        tracing::info!("Adding watch for copyset {:?}", self.name);
+        tracing::info!("  Source: {:?}", self.source);
+        tracing::info!("  Target: {:?}", self.target);
+
         for target in &self.targets {
+            tracing::info!("  {:?} -> {:?}", target.source, target.target);
             let source = self.source.join(&target.source);
             let target = self.target.join(&target.target);
-            tracing::info!("  {:?} -> {:?}", source, target);
 
             let target_exists = target
                 .try_exists()
@@ -92,9 +96,10 @@ impl Copyset {
                 })
                 .unwrap_or(false);
 
+            let target = ResolvedTarget::new(source.clone(), target);
             if source.is_file() && !target_exists {
-                tracing::info!("  Copying {:?} to {:?}", source, target);
-                std::fs::copy(&source, &target).map_err(|err| {
+                tracing::info!("  Target does not exist; copying");
+                target.copy().await.map_err(|err| {
                     tracing::error!("  Failed to copy: {err:?}");
                     err
                 })?;
@@ -109,7 +114,7 @@ impl Copyset {
                     err
                 })?;
 
-            env.targets.insert(wd, ResolvedTarget::new(source, target));
+            env.targets.insert(wd, target);
         }
 
         Ok(())
@@ -137,8 +142,28 @@ impl ResolvedTarget {
         Self { source, target }
     }
 
-    async fn copy(&self) {
+    async fn copy(&self) -> std::io::Result<()> {
         tracing::info!("Copying {:?} to {:?}", self.source, self.target);
+
+        // Make sure that the parent directory of the target exists. If it does not exist, then
+        // create it.
+        let parent = self.target.parent().unwrap();
+        if !parent.exists() {
+            tracing::info!("Creating parent directory {:?}", parent);
+            std::fs::create_dir_all(parent).map_err(|err| {
+                tracing::error!(parent = ?parent, "Failed to create directory: {err:?}");
+                err
+            })?;
+        }
+
+        // Copy the source to the target.
+        std::fs::copy(&self.source, &self.target).map_err(|err| {
+            tracing::error!(source = ?self.source, target = ?self.target,
+                          "Failed to copy from source to target: {err:?}");
+            err
+        })?;
+
+        Ok(())
     }
 }
 
@@ -153,7 +178,10 @@ impl Env {
         while let Some(event_or_error) = stream.next().await {
             let event = event_or_error?;
             if let Some(target) = targets.get(&event.wd) {
-                target.copy().await;
+                target.copy().await.map_err(|err| {
+                    tracing::error!("Failed to copy target: {err:?}");
+                    err
+                })?;
             } else {
                 tracing::warn!("Unknown watch descriptor {:?}", event.wd);
             }
@@ -200,8 +228,7 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(config_path = ?args.config, "Loading configuration");
     let config = Config::load(&args.config)?;
 
-    tracing::info!("Settup up inotify");
-    config.setup()?.run().await?;
+    config.setup().await?.run().await?;
 
     Ok(())
 }
