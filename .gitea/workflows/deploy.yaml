@@ -23,3 +23,5 @@ jobs:
       - name: Push the Image
         run: |
           sudo docker push blakerain/container-copier:latest
+          RELEASE_VERSION="${GITHUB_REF#refs/*/}"
+          sudo docker push blakerain/container-copier:$RELEASE_VERSION
