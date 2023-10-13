@@ -20,6 +20,8 @@ jobs:
           ls -la /var/run/docker.sock
           echo "Seeing if we need to use 'sudo' to run 'docker info'"
           sudo docker info
+          echo "Attempting the same wihtout 'sudo'"
+          docker info
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Log in to DockerHub
