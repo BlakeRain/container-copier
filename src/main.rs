@@ -51,7 +51,13 @@ impl Config {
 
         tracing::info!("Setting up inotify watches");
         for copyset in &self.copysets {
-            copyset.add_to_watch(&mut env)?;
+            copyset.add_to_watch(&mut env).map_err(|err| {
+                tracing::error!(
+                    "Failed to add copyset {:?} to inotify: {err:?}",
+                    copyset.name
+                );
+                err
+            })?;
         }
 
         Ok(env)
@@ -60,6 +66,7 @@ impl Config {
 
 #[derive(Deserialize)]
 struct Copyset {
+    name: String,
     source: PathBuf,
     target: PathBuf,
     targets: Vec<Target>,
