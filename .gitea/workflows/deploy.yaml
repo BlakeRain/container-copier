@@ -24,4 +24,5 @@ jobs:
         run: |
           sudo docker push blakerain/container-copier:latest
           RELEASE_VERSION="${GITHUB_REF#refs/*/}"
+          sudo docker tag blakerain/container-copier:latest blakerain/container-copier:$RELEASE_VERSION
           sudo docker push blakerain/container-copier:$RELEASE_VERSION
