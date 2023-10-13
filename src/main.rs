@@ -57,7 +57,7 @@ impl Config {
                     copyset.name
                 );
                 err
-            })?;
+            });
         }
 
         Ok(env)
