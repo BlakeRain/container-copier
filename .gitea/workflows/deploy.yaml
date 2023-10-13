@@ -15,6 +15,13 @@ jobs:
     steps:
       - name: Checkout the Repository
         uses: actions/checkout@v3
+      - run: |
+          echo "Checking docker socket"
+          ls -la /var/run/docker.sock
+          echo "Attempting to run 'docker info'"
+          docker info
+          echo "Seeing if we need to use 'sudo' to run 'docker info'"
+          sudo docker info
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Log in to DockerHub
