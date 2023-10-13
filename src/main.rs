@@ -69,7 +69,7 @@ impl Config {
 struct Copyset {
     name: String,
     source: PathBuf,
-    target: PathBuf,
+    target: Option<PathBuf>,
     targets: Vec<Target>,
 }
 
@@ -86,7 +86,11 @@ impl Copyset {
         for target in &self.targets {
             tracing::info!("  {:?} -> {:?}", target.source, target.target);
             let source = self.source.join(&target.source);
-            let target = self.target.join(&target.target);
+            let target = self
+                .target
+                .as_ref()
+                .unwrap_or(&self.source)
+                .join(&target.target);
 
             let target_exists = target
                 .try_exists()
