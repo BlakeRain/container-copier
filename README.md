@@ -71,9 +71,7 @@ docker run --user 0 \
 
 There are currently a few restrictions:
 
-1. This relies on the `CREATE`, `DELETE` and `MODIFY` events from inotify only, it does not use any
-   other events or allow other events to be specified (see #1).
-2. Each target must be a single file, there is no wildcard support (see #2).
+1. Each target must be a single file, there is no wildcard support (see #2).
 
 [inotify]: https://en.wikipedia.org/wiki/Inotify
 [blakerain/container-copier]: https://hub.docker.com/r/blakerain/container-copier
